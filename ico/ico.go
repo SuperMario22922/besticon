@@ -8,7 +8,6 @@ import (
 	"errors"
 	"image"
 	"io"
-	"io/ioutil"
 
 	"image/png"
 
@@ -88,12 +87,6 @@ func parseIcondirEntry(r io.Reader, e *icondirEntry) error {
 	return nil
 }
 
-type dibHeader struct {
-	dibHeaderSize uint32
-	width         uint32
-	height        uint32
-}
-
 func (e *icondirEntry) ColorCount() int {
 	if e.PaletteCount == 0 {
 		return 256
@@ -149,7 +142,7 @@ type bitmapHeaderRead struct {
 type bitmapHeaderWrite struct {
 	sigBM           [2]byte
 	fileSize        uint32
-	resverved       [2]uint16
+	resverved       [2]uint16 //lint:ignore U1000 unused
 	pixOffset       uint32
 	Size            uint32
 	Width           uint32
@@ -169,7 +162,7 @@ var errInvalid = errors.New("ico: invalid ICO image")
 // Decode returns the largest image contained in the icon
 // which might be a bmp or png
 func Decode(r io.Reader) (image.Image, error) {
-	icoBytes, err := ioutil.ReadAll(r)
+	icoBytes, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

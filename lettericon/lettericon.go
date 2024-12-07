@@ -24,8 +24,8 @@ import (
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/golang/freetype/truetype"
-	"github.com/mat/besticon/colorfinder"
-	"github.com/mat/besticon/lettericon/fonts"
+	"github.com/mat/besticon/v3/colorfinder"
+	"github.com/mat/besticon/v3/lettericon/fonts"
 )
 
 const dpi = 72
@@ -37,7 +37,7 @@ func RenderPNG(letter string, bgColor color.Color, width int, out io.Writer) err
 	fg := pickForegroundColor(bgColor)
 
 	rgba := image.NewRGBA(image.Rect(0, 0, width, width))
-	draw.Draw(rgba, rgba.Bounds(), &image.Uniform{bgColor}, image.ZP, draw.Src)
+	draw.Draw(rgba, rgba.Bounds(), &image.Uniform{bgColor}, image.Point{}, draw.Src)
 
 	fontSize := fontSizeFactor * float64(width)
 	d := &font.Drawer{
@@ -156,7 +156,7 @@ func foo(col uint32) float64 {
 }
 
 var (
-	errMalformedColorString = errors.New("Malformed hex color string")
+	errMalformedColorString = errors.New("malformed hex color string")
 )
 
 func ColorFromHex(hex string) (*color.RGBA, error) {
@@ -165,15 +165,15 @@ func ColorFromHex(hex string) (*color.RGBA, error) {
 	}
 	hex = strings.TrimPrefix(hex, "#")
 
-	r, err := strconv.ParseInt(hex[0:2], 16, 16)
+	r, err := strconv.ParseUint(hex[0:2], 16, 8)
 	if err != nil {
 		return nil, errMalformedColorString
 	}
-	g, err := strconv.ParseInt(hex[2:4], 16, 16)
+	g, err := strconv.ParseUint(hex[2:4], 16, 8)
 	if err != nil {
 		return nil, errMalformedColorString
 	}
-	b, err := strconv.ParseInt(hex[4:6], 16, 16)
+	b, err := strconv.ParseUint(hex[4:6], 16, 8)
 	if err != nil {
 		return nil, errMalformedColorString
 	}

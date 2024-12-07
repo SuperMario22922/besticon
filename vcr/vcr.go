@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -77,11 +76,11 @@ func logResponse(w io.Writer, res *http.Response, body bool) {
 	var err error
 	if body {
 		defer res.Body.Close()
-		bodyBytes, err = ioutil.ReadAll(res.Body)
+		bodyBytes, err = io.ReadAll(res.Body)
 		if err != nil {
 			fmt.Printf("could not record response: %s", err)
 		}
-		res.Body = ioutil.NopCloser(bytes.NewReader(bodyBytes))
+		res.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	}
 	dumpResonse(w, res, bodyBytes)
 }
@@ -89,7 +88,7 @@ func logResponse(w io.Writer, res *http.Response, body bool) {
 const recordSeparator string = "*************vcr*************\n"
 
 func logSeparator(w io.Writer) {
-	fmt.Fprintf(w, recordSeparator)
+	fmt.Fprint(w, recordSeparator)
 }
 
 var defaultTransport = &http.Transport{}
@@ -141,14 +140,14 @@ func NewReplayerTransport(reader io.Reader) (*replayerTransport, error) {
 	t := &replayerTransport{mutex: sync.Mutex{}}
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	conversation, err := ioutil.ReadAll(reader)
+	conversation, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("vcr: failed to read vcr file: %s", err)
 	}
 	r := bufio.NewReader(bytes.NewReader(conversation))
 
 	i := 0
-	for true {
+	for {
 		i++
 		//		fmt.Printf("Reading Request %d\n", i)
 		req, err := http.ReadRequest(r)
@@ -174,7 +173,7 @@ func NewReplayerTransport(reader io.Reader) (*replayerTransport, error) {
 		}
 
 		bodyBytes := []byte{}
-		for true {
+		for {
 			line, err := r.ReadBytes('\n')
 			separatorReached := strings.HasSuffix(string(line), recordSeparator)
 			if separatorReached {
@@ -184,7 +183,7 @@ func NewReplayerTransport(reader io.Reader) (*replayerTransport, error) {
 
 			if err == io.EOF || separatorReached {
 				bodyReader := bytes.NewReader(bodyBytes)
-				res.Body = ioutil.NopCloser(bodyReader)
+				res.Body = io.NopCloser(bodyReader)
 				break
 			} else if err == nil {
 			} else {

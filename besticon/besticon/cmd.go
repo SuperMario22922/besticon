@@ -3,15 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
-	"github.com/mat/besticon/besticon"
+	"github.com/mat/besticon/v3/besticon"
 )
 
 func main() {
-	besticon.SetLogOutput(ioutil.Discard) // Disable verbose logging
-
 	all := flag.Bool("all", false, "Display all Icons, not just the best.")
 	flag.Parse()
 
@@ -22,7 +20,9 @@ func main() {
 
 	url := os.Args[len(os.Args)-1]
 
-	finder := besticon.IconFinder{}
+	b := besticon.New(besticon.WithLogger(besticon.NewDefaultLogger(io.Discard))) // Disable verbose logging
+
+	finder := b.NewIconFinder()
 	icons, err := finder.FetchIcons(url)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s:  failed to fetch icons: %s\n", url, err)

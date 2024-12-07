@@ -9,7 +9,7 @@ This is a favicon service:
 
 Try out the demo at <https://besticon-demo.herokuapp.com> or find out how to [deploy your own version](#hosting) right now.
 
-[![Build Status](https://travis-ci.org/mat/besticon.svg?branch=master)](https://travis-ci.org/mat/besticon)
+[![Build Status](https://github.com/mat/besticon/actions/workflows/go.yml/badge.svg)](https://github.com/mat/besticon/actions/workflows/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mat/besticon)](https://goreportcard.com/report/github.com/mat/besticon)
 [![Donate at PayPal](https://img.shields.io/badge/paypal-donate-orange.svg?style=flat)](https://paypal.me/matthiasluedtke 'Donate once-off to this project using Paypal')
 
@@ -68,6 +68,7 @@ Feel free to file other bugs - and offer your help - at <https://github.com/mat/
 
 Simple options to host this service are, for example:
 
+- Render: <https://render.com/deploy?repo=https://github.com/mat/besticon>
 - Heroku: <https://heroku.com/deploy>
 - Google Cloud Run: <https://deploy.cloud.run>
 
@@ -91,11 +92,11 @@ Binaries for some operating systems can be downloaded from <https://github.com/m
 
 If you have Go installed on your system you can use `go get` to fetch the source code and build the server:
 
-    $ go get -u github.com/mat/besticon/...
+    $ go get -u github.com/mat/besticon/v3/...
 
 If you want to build executables for a different target operating system you can add the `GOOS` and `GOARCH` environment variables:
 
-    $ GOOS=linux GOARCH=amd64 go get -u github.com/mat/besticon/...
+    $ GOOS=linux GOARCH=amd64 go get -u github.com/mat/besticon/v3/...
 
 ### Running
 
@@ -132,10 +133,12 @@ There is not a lot to configure, but these environment variables exist
 | `CORS_ALLOWED_ORIGINS`   | Comma-separated, passed to middleware                                                                                                                                                      |                            |
 | `CORS_ALLOW_CREDENTIALS` | Boolean, passed to middleware                                                                                                                                                              |                            |
 | `CORS_DEBUG`             | Boolean, passed to middleware                                                                                                                                                              |                            |
+| `DISABLE_BROWSE_PAGES`   | Boolean, if true, the server will not serve any of the HTML pages                                                                                                                          | false                      |
 | `HOST_ONLY_DOMAINS`      |                                                                                                                                                                                            | \*                         |
 | `HTTP_CLIENT_TIMEOUT`    | Timeout used for HTTP requests. Supports units like ms, s, m.                                                                                                                              | 5s                         |
 | `HTTP_MAX_AGE_DURATION`  | Cache duration for all dynamically generated HTTP responses. Supports units like ms, s, m.                                                                                                 | 720h _(30 days)_           |
 | `HTTP_USER_AGENT`        | User-Agent used for HTTP requests                                                                                                                                                          | _iPhone user agent string_ |
+| `METRICS_PATH`           | Path at which the Prometheus metrics are served. Set to `disable` to disable Prometheus metrics                                                                                            | `/metrics`                 |
 | `POPULAR_SITES`          | Comma-separated list of domains used on /popular page                                                                                                                                      | some random web sites      |
 | `PORT`                   | HTTP server port                                                                                                                                                                           | 8080                       |
 | `SERVER_MODE`            | Set to `download` to proxy downloads through besticon or `redirect` to let browser to download instead. (example at [#40](https://github.com/mat/besticon/pull/40#issuecomment-528325450)) | `redirect`                 |
@@ -152,7 +155,7 @@ There is not a lot to configure, but these environment variables exist
 
 MIT License (MIT)
 
-Copyright (c) 2015-2020 Matthias Lüdtke, Hamburg - <https://github.com/mat>
+Copyright (c) 2015-2023 Matthias Lüdtke, Hamburg - <https://github.com/mat>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

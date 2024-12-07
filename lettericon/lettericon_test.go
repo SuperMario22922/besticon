@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
-	"io/ioutil"
+	"io"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -66,7 +67,7 @@ func assertCorrectPNGData(t *testing.T, letter string, width int, hexColor strin
 	}
 
 	// "A-144-123456.png"
-	testdataDir := fmt.Sprintf("testdata/")
+	testdataDir := "testdata/"
 	file := fmt.Sprintf(testdataDir+"%s-%d-%s.png", letter, width, hexColor)
 	fileData, err := bytesFromFile(file)
 	if err != nil {
@@ -87,7 +88,7 @@ func assertCorrectSVGData(t *testing.T, letter string, hexColor string) {
 	imageData := b.Bytes()
 
 	// "A-144-123456.png"
-	testdataDir := fmt.Sprintf("testdata/")
+	testdataDir := "testdata/"
 	file := fmt.Sprintf(testdataDir+"%s-%s.svg", letter, hexColor)
 	fileData, err := bytesFromFile(file)
 	if err != nil {
@@ -114,7 +115,7 @@ func BenchmarkColorFromHex(b *testing.B) {
 }
 
 func bytesFromFile(file string) ([]byte, error) {
-	dat, err := ioutil.ReadFile(file)
+	dat, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -132,11 +133,11 @@ func renderPNGBytes(letter string, bgColor color.Color, width int) ([]byte, erro
 }
 
 func BenchmarkRenderPNG(b *testing.B) {
-	RenderPNG("X", DefaultBackgroundColor, 144, ioutil.Discard) // warmup
+	RenderPNG("X", DefaultBackgroundColor, 144, io.Discard) // warmup
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		RenderPNG("X", DefaultBackgroundColor, 144, ioutil.Discard)
+		RenderPNG("X", DefaultBackgroundColor, 144, io.Discard)
 	}
 }
 

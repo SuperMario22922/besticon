@@ -1,26 +1,35 @@
 # Adapted from
 # https://cloud.google.com/run/docs/quickstarts/build-and-deploy#containerizing
 
-# Use the offical Golang image to create a build artifact.
-# This is based on Debian and sets the GOPATH to /go.
+# Use the official Golang image to create a build artifact.
 # https://hub.docker.com/_/golang
-FROM golang:1.16 as builder
+FROM golang:1.23 as builder
+
+LABEL org.opencontainers.image.source="https://github.com/mat/besticon"
+LABEL org.opencontainers.image.licenses="MIT"
 
 # Copy local code to the container image.
-WORKDIR /go/src/github.com/mat/besticon
+WORKDIR /app
 COPY . .
+
+# TARGETARCH is set only by the docker buildx command - or manually
+ARG TARGETARCH
 
 # Build the command inside the container.
 # (You may fetch or manage dependencies here,
 # either manually or with a tool like "godep".)
-RUN make build_linux_amd64
+RUN make build_linux_${TARGETARCH}
 
 # Use a Docker multi-stage build to create a lean production image.
 # https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
-FROM alpine:3.14
+FROM alpine:3.20
+
+
+# Have to define TARGETARCH again for the second stage
+ARG TARGETARCH
 
 # Copy the binary to the production image from the builder stage.
-COPY --from=builder /go/src/github.com/mat/besticon/bin/linux_amd64/iconserver /iconserver
+COPY --from=builder /app/bin/linux_${TARGETARCH}/iconserver /iconserver
 
 ENV ADDRESS=''
 ENV CACHE_SIZE_MB=32
@@ -37,6 +46,12 @@ ENV HTTP_USER_AGENT=''
 ENV POPULAR_SITES=bing.com,github.com,instagram.com,reddit.com
 ENV PORT=8080
 ENV SERVER_MODE=redirect
+
+ARG VERSION=''
+ARG REVISION=''
+
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.revision="${REVISION}"
 
 # Run the web service on container startup.
 CMD ["/iconserver"]

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/mat/besticon/vcr"
+	"github.com/mat/besticon/v3/vcr"
 )
 
 //
@@ -112,11 +112,11 @@ func TestFetchIcons(t *testing.T) {
 
 		// kicktipp.de
 		{"http://kicktipp.de", []testFetchIcon{
-			{"http://info.kicktipp.de/assets/img/jar_cb333387130/assets/img/logos/apple-touch-icon-57x57-precomposed.png", 57, "png"},
-			{"http://www.kicktipp.de/apple-touch-icon-precomposed.png", 57, "png"},
-			{"http://www.kicktipp.de/apple-touch-icon.png", 57, "png"},
-			{"http://www.kicktipp.de/favicon.ico", 32, "gif"},
-			{"http://info.kicktipp.de/assets/img/jar_cb1652512069/assets/img/logos/favicon.png", 16, "png"},
+			{"https://www.kicktipp.de/assets/apple-touch-icon.0879fba1.png", 180, "png"},
+			{"https://www.kicktipp.de/assets/favicon.5368f953.ico", 48, "ico"},
+			{"https://www.kicktipp.de/favicon.ico", 48, "ico"},
+			{"https://www.kicktipp.de/assets/favicon-32x32.cfcd6069.png", 32, "png"},
+			{"https://www.kicktipp.de/assets/favicon-16x16.932c575d.png", 16, "png"},
 		}},
 
 		// netflix - has cookie redirects
@@ -129,6 +129,21 @@ func TestFetchIcons(t *testing.T) {
 		// storage.googleapis - has bad http response
 		{"https://storage.googleapis.com", []testFetchIcon{
 			{"https://storage.googleapis.com/favicon.ico", 32, "png"},
+		}},
+
+		// xing.com:443 - https with port
+		{"https://xing.com:443", []testFetchIcon{
+			{"https://www.xing.com/assets/frontend_minified/img/shared/xing_icon_apple.png", 129, "png"},
+			{"https://www.xing.com/assets/frontend_minified/img/shared/xing_r1.ico", 16, "ico"},
+			{"https://www.xing.com/favicon.ico", 16, "ico"},
+		}},
+
+		// https://printables.com - <base href="/" - https://github.com/mat/besticon/pull/99
+		{"https://printables.com", []testFetchIcon{
+			{"https://www.printables.com/assets/favicons/apple-touch-icon.png", 180, "png"},
+			{"https://www.printables.com/favicon.ico", 48, "ico"},
+			{"https://www.printables.com/assets/favicons/favicon-32x32.png", 32, "png"},
+			{"https://www.printables.com/assets/favicons/favicon-16x16.png", 16, "png"},
 		}},
 	}
 
@@ -166,7 +181,7 @@ func TestIconInSizeRange(t *testing.T) {
 		{"http://car2go.com", SizeRange{80, 120, 200}, ""},
 		{"http://daringfireball.net", SizeRange{20, 80, 500}, "http://daringfireball.net/graphics/apple-touch-icon.png"},
 		{"http://eat24.com", SizeRange{120, 150, 500}, ""},
-		{"http://kicktipp.de", SizeRange{20, 80, 500}, "http://info.kicktipp.de/assets/img/jar_cb333387130/assets/img/logos/apple-touch-icon-57x57-precomposed.png"},
+		{"http://kicktipp.de", SizeRange{20, 80, 500}, "https://www.kicktipp.de/assets/apple-touch-icon.0879fba1.png"},
 
 		// https://github.com/mat/besticon/issues/28
 		{"https://random.org", SizeRange{16, 32, 64}, "https://www.random.org/favicon.ico"},
@@ -220,60 +235,61 @@ func TestImageSizeDetection(t *testing.T) {
 func TestParseSizeRange(t *testing.T) {
 	// This single num behaviour ensures backwards compatibility for
 	// people who pant (at least) pixel perfect icons.
-	sizeRange, err := ParseSizeRange("120")
+	sizeRange, err := ParseSizeRange("120", 500)
 	check(err)
-	assertEquals(t, &SizeRange{120, 120, MaxIconSize}, sizeRange)
+	assertEquals(t, &SizeRange{120, 120, 500}, sizeRange)
 
-	sizeRange, err = ParseSizeRange("0..120..256")
+	sizeRange, err = ParseSizeRange("120", 512)
+	check(err)
+	assertEquals(t, &SizeRange{120, 120, 512}, sizeRange)
+
+	sizeRange, err = ParseSizeRange("0..120..256", 500)
 	check(err)
 	assertEquals(t, &SizeRange{0, 120, 256}, sizeRange)
 
-	sizeRange, err = ParseSizeRange("120..120..120")
+	sizeRange, err = ParseSizeRange("120..120..120", 500)
 	check(err)
 	assertEquals(t, &SizeRange{120, 120, 120}, sizeRange)
 
-	_, err = ParseSizeRange("")
+	sizeRange, err = ParseSizeRange("120..120..1000", 1024)
+	check(err)
+	assertEquals(t, &SizeRange{120, 120, 1000}, sizeRange)
+
+	_, err = ParseSizeRange("", 500)
 	assertEquals(t, errBadSize, err)
 
-	_, err = ParseSizeRange(" ")
+	_, err = ParseSizeRange(" ", 500)
 	assertEquals(t, errBadSize, err)
 
 	// Max < Perfect not allowed
-	_, err = ParseSizeRange("16..120..80")
+	_, err = ParseSizeRange("16..120..80", 500)
 	assertEquals(t, errBadSize, err)
 
 	// Perfect < Min  not allowed
-	_, err = ParseSizeRange("120..16..80")
+	_, err = ParseSizeRange("120..16..80", 500)
 	assertEquals(t, errBadSize, err)
 
 	// Min too small
-	_, err = ParseSizeRange("-1..2..3")
+	_, err = ParseSizeRange("-1..2..3", 500)
 	assertEquals(t, errBadSize, err)
 
 	// Max too big
-	_, err = ParseSizeRange("1..2..501")
+	_, err = ParseSizeRange("1..2..501", 500)
 	assertEquals(t, errBadSize, err)
 }
 
-func TestGetenvOrFallback(t *testing.T) {
-	os.Setenv("MY_ENV", "some-value")
-	assertEquals(t, "some-value", getenvOrFallback("MY_ENV", "fallback-should-NOT-be-used"))
-
-	os.Setenv("MY_ENV", "")
-	assertEquals(t, "fallback-should-be-used", getenvOrFallback("MY_ENV", "fallback-should-be-used"))
-
-	assertEquals(t, "fallback-should-be-used", getenvOrFallback("key-does-not-exist", "fallback-should-be-used"))
-}
-
 func TestParseSize(t *testing.T) {
-	size, ok := parseSize("120")
+	size, ok := parseSize("120", 500)
 	assertEquals(t, ok, true)
 	assertEquals(t, 120, size)
 
-	_, ok = parseSize("")
+	_, ok = parseSize("", 500)
 	assertEquals(t, ok, false)
 
-	_, ok = parseSize("-10")
+	_, ok = parseSize("-10", 500)
+	assertEquals(t, ok, false)
+
+	_, ok = parseSize("510", 500)
 	assertEquals(t, ok, false)
 }
 
@@ -314,7 +330,8 @@ const testdataDir = "testdata/"
 
 func fetchIconsWithVCR(s string) ([]Icon, *IconFinder, error) {
 	URL, _ := url.Parse(s)
-	path := fmt.Sprintf("%s%s.vcr", testdataDir, URL.Host)
+	host := strings.ReplaceAll(URL.Host, ":", "_")
+	path := fmt.Sprintf("%s%s.vcr", testdataDir, host)
 
 	// build client
 	client, f, err := vcr.Client(path)
@@ -322,13 +339,16 @@ func fetchIconsWithVCR(s string) ([]Icon, *IconFinder, error) {
 		return nil, nil, err
 	}
 	defer f.Close()
-	setHTTPClient(client)
+
+	client.Jar = mustInitCookieJar()
+
+	b := New(WithHTTPClient(client), WithDiscardImageBytes(true))
 
 	// fetch
-	finder := IconFinder{}
+	finder := b.NewIconFinder()
 	finder.HostOnlyDomains = []string{"youtube.com"}
 	icons, err := finder.FetchIcons(s)
-	return icons, &finder, err
+	return icons, finder, err
 }
 
 func getImageWidthForFile(filename string) int {
@@ -342,7 +362,7 @@ func getImageWidthForFile(filename string) int {
 }
 
 func mustReadFile(filename string) []byte {
-	bytes, e := ioutil.ReadFile(filename)
+	bytes, e := os.ReadFile(filename)
 	check(e)
 	return bytes
 }
@@ -364,8 +384,4 @@ func fail(t *testing.T, failureMessage string) {
 	t.Errorf("\t%s\n"+
 		"\r\t",
 		failureMessage)
-}
-
-func init() {
-	keepImageBytes = false
 }
